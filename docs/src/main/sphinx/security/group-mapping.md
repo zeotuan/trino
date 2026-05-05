@@ -9,8 +9,8 @@ on the coordinator:
 ```properties
 group-provider.name=file
 ```
-The value for `group-provider.name` must be either `file` or `ldap` and the
-configuration of the chosen group provider must be included in the same file.
+The configuration of the chosen group provider must be included in the same
+file.
 
 :::{list-table} Group provider configuration
 :widths: 40, 60
@@ -23,6 +23,7 @@ configuration of the chosen group provider must be included in the same file.
   - Name of the group provider to use.
     Supported values are:
 
+      * `entra-id`: [See configuration](entra-id-group-provider)
       * `file`: [See configuration](file-group-provider)
       * `ldap`: [See configuration](ldap-group-provider)
 * - `group-provider.group-case`
@@ -41,6 +42,87 @@ configuration of the chosen group provider must be included in the same file.
 Groups resolved by the group provider are passed to Trino’s system access
 control engine. Access control rules can reference these group names to grant
 or restrict permissions.
+
+(entra-id-group-provider)=
+## Entra ID group provider
+
+The Entra ID group provider resolves user group memberships from Microsoft
+Graph. It is intended for clusters that use OAuth2 authentication with
+Microsoft Entra ID and want group-based access control without LDAP.
+
+For stable lookup, configure OAuth2 authentication to use the Entra user object
+ID as the Trino user:
+
+```properties
+http-server.authentication.oauth2.principal-field=oid
+```
+
+Then enable the Entra ID group provider by creating an
+`etc/group-provider.properties` file on the coordinator:
+
+```properties
+group-provider.name=entra-id
+entra.tenant-id=00000000-0000-0000-0000-000000000000
+entra.client-id=11111111-1111-1111-1111-111111111111
+entra.client-secret=${ENV:ENTRA_GROUP_PROVIDER_SECRET}
+entra.group-mapping.22222222-2222-2222-2222-222222222222=trino-admin
+entra.group-mapping.33333333-3333-3333-3333-333333333333=trino-reader
+```
+
+The Entra application must have Microsoft Graph application permissions that
+allow reading user group membership, such as `User.Read.All` or
+`GroupMember.Read.All`, and tenant admin consent.
+
+The provider queries transitive group membership for the requested Trino user.
+This allows Trino to resolve groups for the authenticated user and for other
+effective identities used by features such as security-definer views, row
+filters, column masks, and session authorization.
+
+The following configuration properties are available:
+
+:::{list-table} Entra ID group provider configuration
+:widths: 40, 60
+:header-rows: 1
+
+* - Property name
+  - Description
+* - `entra.tenant-id`
+  - Microsoft Entra ID tenant ID or tenant domain.
+* - `entra.client-id`
+  - Client ID for the Entra application used to query Microsoft Graph.
+* - `entra.client-secret`
+  - Client secret for the Entra application used to query Microsoft Graph.
+* - `entra.authority-base-url`
+  - Base URL for the Microsoft identity platform token endpoint.
+    Defaults to `https://login.microsoftonline.com`.
+* - `entra.graph-base-url`
+  - Microsoft Graph API base URL.
+    Defaults to `https://graph.microsoft.com/v1.0`.
+* - `entra.graph-scope`
+  - OAuth2 client credentials scope for Microsoft Graph.
+    Defaults to `https://graph.microsoft.com/.default`.
+* - `entra.cache-ttl`
+  - [Duration](prop-type-duration) to cache group membership lookups.
+    Defaults to `5m`.
+* - `entra.failure-cache-ttl`
+  - [Duration](prop-type-duration) to cache failed group membership lookups
+    as empty groups. Defaults to `10s`.
+* - `entra.group-name-attribute`
+  - Group attribute to return when no explicit group mapping is configured.
+    Supported values are `ID` and `DISPLAY_NAME`. Defaults to `ID`.
+* - `entra.security-groups-only`
+  - Ignore non-security-enabled Entra groups. Defaults to `true`.
+* - `entra.max-pages`
+  - Maximum number of Microsoft Graph membership pages to follow per lookup.
+    Defaults to `100`.
+* - `entra.group-mapping.<group ID>`
+  - Maps an Entra group object ID to a Trino group name. When at least one
+    mapping is configured, only mapped Entra groups are returned.
+:::
+
+Prefer `entra.group-mapping.<group ID>` for access-control rules. Entra group
+display names are easier to read but can be renamed and are not guaranteed to
+be unique.
 
 (file-group-provider)=
 ## File group provider
