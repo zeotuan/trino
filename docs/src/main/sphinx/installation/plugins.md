@@ -162,6 +162,9 @@ included in the build and release process and the resulting the binary packages.
 * - elasticsearch
   - [](/connector/elasticsearch)
   - {download_gh}`elasticsearch`
+* - entra-group-provider
+  - [](/security/group-mapping)
+  - {download_gh}`entra-group-provider`
 * - example-http
   - [](/develop/example-http)
   - {download_gh}`example-http`

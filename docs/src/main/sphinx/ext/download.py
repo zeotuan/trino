@@ -32,6 +32,7 @@ ARTIFACTS = {
     'druid':  ('trino-druid', 'zip'),
     'duckdb':  ('trino-duckdb', 'zip'),
     'elasticsearch':  ('trino-elasticsearch', 'zip'),
+    'entra-group-provider':  ('trino-entra-group-provider', 'zip'),
     'example-http':  ('trino-example-http', 'zip'),
     'exasol':  ('trino-exasol', 'zip'),
     'exchange-filesystem':  ('trino-exchange-filesystem', 'zip'),
