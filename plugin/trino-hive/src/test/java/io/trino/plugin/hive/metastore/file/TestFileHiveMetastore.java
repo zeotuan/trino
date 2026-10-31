@@ -38,6 +38,7 @@ import java.util.Optional;
 
 import static com.google.common.io.MoreFiles.deleteRecursively;
 import static com.google.common.io.RecursiveDeleteOption.ALLOW_INSECURE;
+import static io.airlift.json.JsonCodec.jsonCodec;
 import static io.trino.hive.formats.HiveClassNames.HUDI_PARQUET_INPUT_FORMAT;
 import static io.trino.hive.formats.HiveClassNames.MAPRED_PARQUET_OUTPUT_FORMAT_CLASS;
 import static io.trino.hive.formats.HiveClassNames.PARQUET_HIVE_SERDE_CLASS;
@@ -144,5 +145,32 @@ final class TestFileHiveMetastore
         metastore.dropTable(databaseName, tableName, false);
 
         getMetastore().dropDatabase(databaseName, false);
+    }
+
+    @Test
+    void testDatabaseComment()
+    {
+        String databaseName = "test_database_" + randomNameSuffix();
+        getMetastore().createDatabase(Database.builder()
+                .setDatabaseName(databaseName)
+                .setOwnerName(Optional.empty())
+                .setOwnerType(Optional.empty())
+                .setComment(Optional.of("database comment"))
+                .build());
+        try {
+            assertThat(createMetastore(tempDir).getDatabase(databaseName).orElseThrow().getComment())
+                    .hasValue("database comment");
+        }
+        finally {
+            getMetastore().dropDatabase(databaseName, false);
+        }
+    }
+
+    @Test
+    void testReadDatabaseMetadataWithoutComment()
+    {
+        DatabaseMetadata metadata = jsonCodec(DatabaseMetadata.class).fromJson("{\"ownerName\":\"owner\",\"ownerType\":\"USER\",\"parameters\":{}}");
+        assertThat(metadata.getComment()).isEmpty();
+        assertThat(metadata.toDatabase("database", "local:///database").getComment()).isEmpty();
     }
 }

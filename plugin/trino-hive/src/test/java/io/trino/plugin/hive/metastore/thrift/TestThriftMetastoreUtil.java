@@ -33,6 +33,7 @@ import io.trino.hive.thrift.metastore.SkewedInfo;
 import io.trino.hive.thrift.metastore.StorageDescriptor;
 import io.trino.hive.thrift.metastore.StringColumnStatsData;
 import io.trino.metastore.BooleanStatistics;
+import io.trino.metastore.Database;
 import io.trino.metastore.DateStatistics;
 import io.trino.metastore.DecimalStatistics;
 import io.trino.metastore.DoubleStatistics;
@@ -229,6 +230,23 @@ public class TestThriftMetastoreUtil
         Partition partition = ThriftMetastoreUtil.fromMetastoreApiPartition(TEST_PARTITION);
         io.trino.hive.thrift.metastore.Partition metastoreApiPartition = ThriftMetastoreUtil.toMetastoreApiPartition(partition);
         assertThat(metastoreApiPartition).isEqualTo(TEST_PARTITION);
+    }
+
+    @Test
+    public void testDatabaseDescriptionRoundTrip()
+    {
+        io.trino.hive.thrift.metastore.Database database = new io.trino.hive.thrift.metastore.Database();
+        database.setName("db_name");
+        database.setOwnerName("owner");
+        database.setOwnerType(io.trino.hive.thrift.metastore.PrincipalType.USER);
+        database.setParameters(ImmutableMap.of());
+
+        assertThat(ThriftMetastoreUtil.fromMetastoreApiDatabase(database).getComment()).isEmpty();
+
+        database.setDescription("schema description");
+        Database trinoDatabase = ThriftMetastoreUtil.fromMetastoreApiDatabase(database);
+        assertThat(trinoDatabase.getComment()).hasValue("schema description");
+        assertThat(ThriftMetastoreUtil.toMetastoreApiDatabase(trinoDatabase)).isEqualTo(database);
     }
 
     @Test
