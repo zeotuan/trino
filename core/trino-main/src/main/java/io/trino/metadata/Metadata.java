@@ -536,6 +536,15 @@ public interface Metadata
     Map<String, Object> getSchemaProperties(Session session, CatalogSchemaName schemaName);
 
     /**
+     * Gets the comment for the specified schema.
+     * An empty result means that the schema has no comment or schema comments are not supported.
+     * The schema existence is not verified; callers are expected to pass a listed schema.
+     *
+     * @throws TrinoException with {@code SCHEMA_NOT_FOUND} if the connector detects that the schema does not exist
+     */
+    Optional<String> getSchemaComment(Session session, CatalogSchemaName schemaName);
+
+    /**
      * Gets the schema owner for the specified schema.
      */
     Optional<TrinoPrincipal> getSchemaOwner(Session session, CatalogSchemaName schemaName);

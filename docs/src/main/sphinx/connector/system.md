@@ -40,6 +40,15 @@ CALL system.runtime.kill_query(query_id => '20151207_215727_00146_tx3nr', messag
 
 The catalogs table contains the list of available catalogs.
 
+(system-metadata-schema-comments)=
+### `metadata.schema_comments`
+
+The schema comments table contains the catalog name, schema name, and comment
+for each schema visible to the current user. The comment is `NULL` if absent
+or unsupported by the connector. The [](/connector/hive),
+[](/connector/delta-lake), and [](/connector/lakehouse) connectors return the
+schema description stored in the metastore.
+
 ### `metadata.schema_properties`
 
 The schema properties table contains the list of available properties

@@ -394,12 +394,60 @@ public class TestSystemMetadataConnector
     }
 
     @Test
+    public void testSchemaCommentsMetadataCalls()
+    {
+        // Whole catalog
+        assertMetadataCalls(
+                "SELECT count(*), count(comment) FROM system.metadata.schema_comments WHERE catalog_name = 'test_catalog'",
+                "VALUES (5, 0)",
+                ImmutableMultiset.<String>builder()
+                        .add("ConnectorMetadata.listSchemaNames")
+                        .add("ConnectorMetadata.getSchemaComment(schema=test_schema1)")
+                        .add("ConnectorMetadata.getSchemaComment(schema=test_schema2)")
+                        .add("ConnectorMetadata.getSchemaComment(schema=test_schema3_empty)")
+                        .add("ConnectorMetadata.getSchemaComment(schema=test_schema4_empty)")
+                        .build());
+
+        // Specific schema
+        assertMetadataCalls(
+                "SELECT comment FROM system.metadata.schema_comments WHERE catalog_name = 'test_catalog' AND schema_name = 'test_schema1'",
+                "VALUES CAST(NULL AS varchar)",
+                ImmutableMultiset.<String>builder()
+                        .add("ConnectorMetadata.listSchemaNames")
+                        .add("ConnectorMetadata.getSchemaComment(schema=test_schema1)")
+                        .build());
+
+        // Schema that does not exist
+        assertMetadataCalls(
+                "SELECT comment FROM system.metadata.schema_comments WHERE catalog_name = 'test_catalog' AND schema_name = 'wrong_schema'",
+                "SELECT '' WHERE false",
+                ImmutableMultiset.of("ConnectorMetadata.listSchemaNames"));
+
+        // Comment not requested
+        assertMetadataCalls(
+                "SELECT count(*) FROM system.metadata.schema_comments WHERE catalog_name = 'test_catalog'",
+                "VALUES 5",
+                ImmutableMultiset.of("ConnectorMetadata.listSchemaNames"));
+
+        // Empty schema name
+        assertMetadataCalls(
+                "SELECT comment FROM system.metadata.schema_comments WHERE schema_name = ''",
+                "SELECT '' WHERE false",
+                ImmutableMultiset.of());
+    }
+
+    @Test
     public void testMetadataListingExceptionHandling()
     {
         // TODO this should probably gracefully continue when some catalog is "broken" (does not currently work, e.g. is offline)
         assertQueryFails(
                 "SELECT * FROM system.metadata.table_comments",
                 "Catalog is broken");
+
+        // TODO this should probably gracefully continue when some catalog is "broken" (does not currently work, e.g. is offline)
+        assertQueryFails(
+                "SELECT * FROM system.metadata.schema_comments",
+                "Error listing schemas for catalog broken_catalog: Catalog is broken");
 
         // TODO this should probably gracefully continue when some catalog is "broken" (does not currently work, e.g. is offline)
         assertQueryFails(
